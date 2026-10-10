@@ -49,6 +49,34 @@ const PLACEHOLDER_SNIPPETS = [
   "gathering the facts",
   "thinking",
   "searching",
+  // Ukrainian (the UI is localised; without these the loading phrase is treated as an answer)
+  "пошук ключових слів",
+  "пошук",
+  "збирання фактів",
+  "створення відповіді",
+  "відповідь створюється",
+  "генерація відповіді",
+  "генерується відповідь",
+  "завантаження",
+  "зачекайте",
+  "будь ласка, зачекайте",
+  "аналізую",
+  "аналіз джерел",
+  "переглядаю джерела",
+  "обробка запиту",
+  "думаю",
+  // Russian
+  "поиск ключевых слов",
+  "поиск",
+  "сбор фактов",
+  "создание ответа",
+  "ответ создается",
+  "генерация ответа",
+  "загрузка",
+  "пожалуйста, подождите",
+  "подождите",
+  "анализирую",
+  "обработка запроса",
   // German
   "antwort wird erstellt",
   "antwort wird generiert",
@@ -173,11 +201,17 @@ const RATE_LIMIT_MESSAGES = [
 ];
 
 function isPlaceholder(text: string): boolean {
-  const lower = text.toLowerCase();
+  // NotebookLM prefixes answers with an "[AI-GENERATED ...]" banner; strip it first,
+  // otherwise a short loading phrase looks long enough to be a real answer.
+  const stripped = text.replace(/^\s*\[AI-GENERATED[^\]]*\]\s*/i, "");
+  const lower = stripped.toLowerCase();
   if (PLACEHOLDER_SNIPPETS.some((s) => lower.includes(s))) return true;
-  // Short text ending with "..." is almost certainly a loading indicator;
-  // real responses run well past 50 chars.
-  if (text.length < 50 && text.trim().endsWith("...")) return true;
+  // Short text ending with an ellipsis is almost certainly a loading indicator;
+  // real responses run well past 60 chars. NOTE: the UI emits U+2026 (…), not
+  // three ASCII dots, so both forms must be handled — otherwise answers for every
+  // locale outside the eight hard-coded ones are truncated to the loading phrase.
+  const trimmed = stripped.trim();
+  if (trimmed.length < 60 && (trimmed.endsWith("...") || trimmed.endsWith("\u2026"))) return true;
   return false;
 }
 
@@ -327,6 +361,18 @@ async function readLatestAnswer(page: Page): Promise<string | null> {
  * answer prose with the same words ("more horizontal") is not touched.
  */
 export function sanitizeAnswer(text: string): string {
+  // The Gemini "thinking" panel heading leaks into the extracted answer text
+  // (localised: Thoughts / Думки / Роздуми / Мысли). It is UI chrome, not content.
+  const thinkingHeaders = new Set([
+    "thoughts",
+    "thinking",
+    "thought",
+    "думки",
+    "роздуми",
+    "міркування",
+    "мысли",
+    "размышления",
+  ]);
   const lines = text
     .replace(/\r/g, "")
     .split("\n")
@@ -338,6 +384,8 @@ export function sanitizeAnswer(text: string): string {
     if (!line) continue;
 
     if (Selectors.uiControlLabels.has(line)) continue;
+    // Drop the thinking-panel heading (see thinkingHeaders above).
+    if (thinkingHeaders.has(line.toLowerCase())) continue;
 
     // Drop lone digits or punctuation flanking a UI-control label
     // (typical citation-marker leak: ["1", "more_vert"]).

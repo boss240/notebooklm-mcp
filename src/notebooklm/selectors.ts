@@ -123,6 +123,10 @@ export const Selectors = {
      */
     addButton: [
       "button.add-source-button",
+      // Current UI (2026-10) localises the aria-label and dropped the class anchor.
+      'button[aria-label="Додати джерело"]',
+      'button[aria-label*="додати джерело" i]',
+      'button:has-text("Додати джерела")',
       'button[aria-label="Add source"]',
       'button[aria-label*="add source" i]',
       'button[aria-label*="quelle hinzu" i]',
@@ -140,7 +144,10 @@ export const Selectors = {
      * animation class and resistant to Material-UI version bumps. Avoid
      * `.cdk-overlay-pane` (matches every dropdown / emoji picker / menu).
      */
-    overlayPane: '[role="dialog"]',
+    // NOTE: `[role="dialog"]` + `.first()` used to pick a DIFFERENT, hidden dialog
+    // (the page keeps several in the DOM), so the 8 s visibility wait always timed out.
+    // Anchoring on the *open* Material dialog is what the add-source flow actually needs.
+    overlayPane: "mat-dialog-container.mdc-dialog--open",
     overlayInput: '[role="dialog"] input[type="text"]:not([readonly])',
     overlayTextarea: '[role="dialog"] textarea',
     /**
@@ -149,7 +156,9 @@ export const Selectors = {
      * the Material-Symbols icon name baked into a `<mat-icon>` text node.
      */
     sourceTypeUrl: [
-      // Icon-anchored (language-free) — primary path.
+      // Current UI renamed the class to `source-action-button` (language-free anchor).
+      'button.source-action-button:has(mat-icon:text-is("link"))',
+      'button.source-action-button:has-text("Вебсайти")',
       "button.drop-zone-icon-button:has(mat-icon.youtube-icon)",
       'button.drop-zone-icon-button:has(mat-icon:text-is("link"))',
       // Visible-text fallbacks for the eight major locales.
@@ -164,7 +173,9 @@ export const Selectors = {
       'span:has-text("URL")',
     ],
     sourceTypeText: [
-      // Icon-anchored (language-free) — primary path.
+      // Current UI renamed the class to `source-action-button` (language-free anchor).
+      'button.source-action-button:has(mat-icon:text-is("content_paste"))',
+      'button.source-action-button:has-text("Скопійований текст")',
       'button.drop-zone-icon-button:has(mat-icon:text-is("content_paste"))',
       // Visible-text fallbacks for major locales.
       'button.drop-zone-icon-button:has-text("Kopierter Text")',
@@ -202,6 +213,9 @@ export const Selectors = {
     insertConfirm: [
       // Class-anchored (language-free).
       'button.mdc-button--raised:has-text("Insert")',
+      // Ukrainian UI: "Вставити" / "Додати".
+      'button.mdc-button--raised:has-text("Вставити")',
+      'button.mdc-button--raised:has-text("Додати")',
       'button.mat-flat-button:has-text("Insert")',
       'button[color="primary"]:has-text("Insert")',
       // Visible-text fallbacks for major locales.
@@ -313,7 +327,15 @@ export const Selectors = {
      * contains the Download item.
      */
     audioMoreMenuButton: [
-      "artifact-library-item button:has(mat-icon:text-is(\"more_vert\"))",
+      // A notebook holds many artifacts (reports, infographics, decks), so "first tile"
+      // downloads the wrong one (a PNG instead of the .m4a). Anchor on the audio tile:
+      // it is the one with a play button (`button.artifact-action-button`) or the
+      // `audio_spark` icon.
+      'artifact-library-item:has(button.artifact-action-button) button:has(mat-icon:text-is("more_vert"))',
+      'artifact-library-item:has(mat-icon:text-is("audio_spark")) button:has(mat-icon:text-is("more_vert"))',
+      'artifact-library-item:has(button.artifact-action-button) button[aria-label*="більше" i]',
+      'artifact-library-item:has(mat-icon:text-is("audio_spark")) button[aria-label*="більше" i]',
+      'artifact-library-item button:has(mat-icon:text-is("more_vert"))',
       'artifact-library-item button[aria-label*="mehr" i]',
       'artifact-library-item button[aria-label*="more" i]',
       'artifact-library-item button[aria-label*="plus" i]',
@@ -327,6 +349,11 @@ export const Selectors = {
      * Download menu-item that surfaces after clicking the three-dot menu.
      */
     audioDownloadMenuItem: [
+      // 2026-10: the download item uses the `save_alt` glyph (NOT `download`), which is a
+      // language-free anchor; the text variants below only cover non-English locales by name.
+      '[role="menuitem"]:has(mat-icon:text-is("save_alt"))',
+      '[role="menuitem"]:has-text("Завантажити")',
+      '[role="menuitem"]:has-text("Скачати")',
       '[role="menuitem"]:has(mat-icon:text-is("download"))',
       '[role="menuitem"]:has-text("Download")',
       '[role="menuitem"]:has-text("Herunterladen")',
